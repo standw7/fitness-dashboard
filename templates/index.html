@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fitness & Reading</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script>Chart.defaults.animation = false;</script>
+  <style>
+    body { background: #fafafa; }
+    .card { background: #ffffff; border: 1px solid #e5e7eb; }
+    .stat-value { font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body class="text-gray-800 min-h-screen">
+  <!-- Confirmation Modal -->
+  <div id="confirm-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/30" onclick="closeModal()"></div>
+    <div class="card rounded-xl p-6 shadow-lg relative z-10 max-w-sm w-full mx-4">
+      <h3 class="text-lg font-semibold text-black mb-2">Delete entry?</h3>
+      <p class="text-gray-600 text-sm mb-1" id="confirm-details"></p>
+      <p class="text-gray-400 text-xs mb-5">This cannot be undone.</p>
+      <div class="flex gap-3 justify-end">
+        <button onclick="closeModal()"
+          class="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">Cancel</button>
+        <button onclick="confirmDelete()"
+          class="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-6xl mx-auto px-4 py-8">
+    <h1 class="text-2xl font-bold mb-6 text-black">Fitness & Reading</h1>
+
+    <!-- Tabs -->
+    <div class="flex gap-2 mb-6">
+      <button onclick="showTab('exercise')" id="tab-exercise"
+        class="px-4 py-2 rounded-lg text-sm font-medium bg-black text-white">Exercise</button>
+      <button onclick="showTab('reading')" id="tab-reading"
+        class="px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-600 hover:bg-gray-300">Reading</button>
+    </div>
+
+    <!-- Exercise Tab -->
+    <div id="panel-exercise">
+      <!-- Stats cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="card rounded-xl p-4">
+          <div class="text-gray-500 text-xs uppercase tracking-wide mb-1">Pushups (week)</div>
+          <div class="text-2xl font-bold text-black stat-value" id="week-pushups">-</div>
+        </div>
+        <div class="card rounded-xl p-4">
+          <div class="text-gray-500 text-xs uppercase tracking-wide mb-1">Situps (week)</div>
+          <div class="text-2xl font-bold text-black stat-value" id="week-situps">-</div>
+        </div>
+        <div class="card rounded-xl p-4">
+          <div class="text-gray-500 text-xs uppercase tracking-wide mb-1">Pullups (week)</div>
+          <div class="text-2xl font-bold text-black stat-value" id="week-pullups">-</div>
+        </div>
+        <div class="card rounded-xl p-4">
+          <div class="text-gray-500 text-xs uppercase tracking-wide mb-1">Sessions (week)</div>
+          <div class="text-2xl font-bold text-black stat-value" id="week-sessions">-</div>
+        </div>
+      </div>
+
+      <!-- All-time stats -->
+      <div class="grid grid-cols-3 gap-4 mb-6">
+        <div class="card rounded-xl p-4 text-center">
+          <div class="text-gray-500 text-xs uppercase tracking-wide mb-1">All-time Pushups</div>
+          <div class="text-3xl font-bold text-black stat-value" id="all-pushups">-</div>
+        </div>
+        <div class="card rounded-xl p-4 text-center">
+          <div class="text-gray-500 text-xs uppercase tracking-wide mb-1">All-time Situps</div>
+          <div class="text-3xl font-bold text-black stat-value" id="all-situps">-</div>
+        </div>
+        <div class="card rounded-xl p-4 text-center">
+          <div class="text-gray-500 text-xs uppercase tracking-wide mb-1">All-time Pullups</div>
+          <div class="text-3xl font-bold text-black stat-value" id="all-pullups">-</div>
+        </div>
+      </div>
+
+      <!-- Chart -->
+      <div class="card rounded-xl p-4 mb-6">
+        <h2 class="text-sm font-medium text-gray-500 mb-3">Last 30 days</h2>
+        <canvas id="exerciseChart" height="200"></canvas>
+      </div>
+
+      <!-- History -->
+      <div class="card rounded-xl p-4">
+        <h2 class="text-sm font-medium text-gray-500 mb-3">Recent entries</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-gray-500 border-b border-gray-200">
+                <th class="text-left py-2 pr-4">Date</th>
+                <th class="text-right py-2 px-4">Pushups</th>
+                <th class="text-right py-2 px-4">Situps</th>
+                <th class="text-right py-2 px-4">Pullups</th>
+                <th class="w-10"></th>
+              </tr>
+            </thead>
+            <tbody id="exercise-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reading Tab -->
+    <div id="panel-reading" class="hidden">
+      <!-- Stats cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="card rounded-xl p-4">
+          <div class="text-gray-500 text-xs uppercase tracking-wide mb-1">This week</div>
+          <div class="text-2xl font-bold text-black stat-value"><span id="week-reading">-</span> min</div>
+        </div>
+        <div class="card rounded-xl p-4">
+          <div class="text-gray-500 text-xs uppercase tracking-wide mb-1">Sessions (week)</div>
+          <div class="text-2xl font-bold text-black stat-value" id="week-reading-sessions">-</div>
+        </div>
+        <div class="card rounded-xl p-4">
+          <div class="text-gray-500 text-xs uppercase tracking-wide mb-1">This month</div>
+          <div class="text-2xl font-bold text-black stat-value"><span id="month-reading">-</span> min</div>
+        </div>
+        <div class="card rounded-xl p-4">
+          <div class="text-gray-500 text-xs uppercase tracking-wide mb-1">All time</div>
+          <div class="text-2xl font-bold text-black stat-value"><span id="all-reading">-</span> min</div>
+        </div>
+      </div>
+
+      <!-- Chart -->
+      <div class="card rounded-xl p-4 mb-6">
+        <h2 class="text-sm font-medium text-gray-500 mb-3">Last 30 days (minutes)</h2>
+        <canvas id="readingChart" height="200"></canvas>
+      </div>
+
+      <!-- Books -->
+      <div class="card rounded-xl p-4 mb-6" id="books-section">
+        <h2 class="text-sm font-medium text-gray-500 mb-3">Books</h2>
+        <div id="books-list" class="space-y-2"></div>
+      </div>
+
+      <!-- History -->
+      <div class="card rounded-xl p-4">
+        <h2 class="text-sm font-medium text-gray-500 mb-3">Recent entries</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-gray-500 border-b border-gray-200">
+                <th class="text-left py-2 pr-4">Date</th>
+                <th class="text-left py-2 px-4">Book</th>
+                <th class="text-right py-2 px-4">Minutes</th>
+                <th class="w-10"></th>
+              </tr>
+            </thead>
+            <tbody id="reading-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let exerciseChart, readingChart;
+    let pendingDelete = null; // { type: 'fitness'|'reading', index: number }
+
+    function showTab(tab) {
+      document.getElementById('panel-exercise').classList.toggle('hidden', tab !== 'exercise');
+      document.getElementById('panel-reading').classList.toggle('hidden', tab !== 'reading');
+      document.getElementById('tab-exercise').className = tab === 'exercise'
+        ? 'px-4 py-2 rounded-lg text-sm font-medium bg-black text-white'
+        : 'px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-600 hover:bg-gray-300';
+      document.getElementById('tab-reading').className = tab === 'reading'
+        ? 'px-4 py-2 rounded-lg text-sm font-medium bg-black text-white'
+        : 'px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-600 hover:bg-gray-300';
+    }
+
+    function formatDate(iso) {
+      const d = new Date(iso + 'T00:00:00');
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    function openDeleteModal(type, index, description) {
+      pendingDelete = { type, index };
+      document.getElementById('confirm-details').textContent = description;
+      document.getElementById('confirm-modal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      pendingDelete = null;
+      document.getElementById('confirm-modal').classList.add('hidden');
+    }
+
+    async function confirmDelete() {
+      if (!pendingDelete) return;
+      const { type, index } = pendingDelete;
+      closeModal();
+      const res = await fetch(`/api/${type}/${index}`, { method: 'DELETE' });
+      if (res.ok) loadData();
+    }
+
+    async function loadData() {
+      const [statsRes, fitnessRes, readingRes] = await Promise.all([
+        fetch('/api/stats'),
+        fetch('/api/fitness'),
+        fetch('/api/reading'),
+      ]);
+      const stats = await statsRes.json();
+      const fitness = await fitnessRes.json();
+      const reading = await readingRes.json();
+
+      // Exercise stats
+      document.getElementById('week-pushups').textContent = stats.week_exercise.pushups;
+      document.getElementById('week-situps').textContent = stats.week_exercise.situps;
+      document.getElementById('week-pullups').textContent = stats.week_exercise.pullups;
+      document.getElementById('week-sessions').textContent = stats.week_sessions;
+      document.getElementById('all-pushups').textContent = stats.all_exercise.pushups.toLocaleString();
+      document.getElementById('all-situps').textContent = stats.all_exercise.situps.toLocaleString();
+      document.getElementById('all-pullups').textContent = stats.all_exercise.pullups.toLocaleString();
+
+      // Reading stats
+      document.getElementById('week-reading').textContent = stats.week_reading_min;
+      document.getElementById('week-reading-sessions').textContent = stats.week_reading_sessions;
+      document.getElementById('month-reading').textContent = stats.month_reading_min;
+      document.getElementById('all-reading').textContent = stats.all_reading_min.toLocaleString();
+
+      // Exercise chart
+      const labels = stats.chart_dates.map(formatDate);
+      const ctx1 = document.getElementById('exerciseChart').getContext('2d');
+      if (exerciseChart) exerciseChart.destroy();
+      exerciseChart = new Chart(ctx1, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            { label: 'Pushups', data: stats.chart_pushups, borderColor: '#111827', backgroundColor: '#111827', pointRadius: 3, tension: 0.3 },
+            { label: 'Situps', data: stats.chart_situps, borderColor: '#6b7280', backgroundColor: '#6b7280', pointRadius: 3, tension: 0.3 },
+            { label: 'Pullups', data: stats.chart_pullups, borderColor: '#d1d5db', backgroundColor: '#d1d5db', pointRadius: 3, tension: 0.3 },
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { labels: { color: '#6b7280' } } },
+          scales: {
+            x: { ticks: { color: '#9ca3af', maxTicksLimit: 10 }, grid: { display: false } },
+            y: { beginAtZero: true, ticks: { color: '#9ca3af', precision: 0 }, grid: { color: '#f3f4f6' } },
+          }
+        }
+      });
+
+      // Reading chart
+      const ctx2 = document.getElementById('readingChart').getContext('2d');
+      if (readingChart) readingChart.destroy();
+      readingChart = new Chart(ctx2, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Minutes',
+            data: stats.chart_reading,
+            borderColor: '#111827',
+            backgroundColor: '#111827',
+            pointRadius: 3,
+            tension: 0.3,
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: '#9ca3af', maxTicksLimit: 10 }, grid: { display: false } },
+            y: { beginAtZero: true, ticks: { color: '#9ca3af', precision: 0 }, grid: { color: '#f3f4f6' } },
+          }
+        }
+      });
+
+      // Books list
+      const booksDiv = document.getElementById('books-list');
+      const books = Object.entries(stats.books).sort((a, b) => b[1] - a[1]);
+      if (books.length === 0) {
+        document.getElementById('books-section').classList.add('hidden');
+      } else {
+        document.getElementById('books-section').classList.remove('hidden');
+        booksDiv.innerHTML = books.map(([name, mins]) => `
+          <div class="flex justify-between items-center py-1.5 border-b border-gray-100 last:border-0">
+            <span class="text-gray-800">${name}</span>
+            <span class="text-gray-500 text-sm">${mins} min</span>
+          </div>
+        `).join('');
+      }
+
+      // Exercise table (show newest first, but track real index for deletion)
+      const exTable = document.getElementById('exercise-table');
+      const exEntries = fitness.map((e, i) => ({ ...e, _idx: i })).slice(-20).reverse();
+      exTable.innerHTML = exEntries.map(e => {
+        const parts = [];
+        if (e.pushups) parts.push(`${e.pushups} pushups`);
+        if (e.situps) parts.push(`${e.situps} situps`);
+        if (e.pullups) parts.push(`${e.pullups} pullups`);
+        const desc = `${formatDate(e.date)} — ${parts.join(', ')}`;
+        return `
+        <tr class="border-b border-gray-100 group">
+          <td class="py-2 pr-4 text-gray-600">${formatDate(e.date)}</td>
+          <td class="py-2 px-4 text-right">${e.pushups || '-'}</td>
+          <td class="py-2 px-4 text-right">${e.situps || '-'}</td>
+          <td class="py-2 px-4 text-right">${e.pullups || '-'}</td>
+          <td class="py-2 pl-2">
+            <button onclick="openDeleteModal('fitness', ${e._idx}, '${desc.replace(/'/g, "\\'")}')"
+              class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-opacity text-xs px-1"
+              title="Delete">&#x2715;</button>
+          </td>
+        </tr>`;
+      }).join('');
+
+      // Reading table
+      const rdTable = document.getElementById('reading-table');
+      const rdEntries = reading.map((e, i) => ({ ...e, _idx: i })).slice(-20).reverse();
+      rdTable.innerHTML = rdEntries.map(e => {
+        const desc = `${formatDate(e.date)} — ${e.minutes} min${e.book ? ' — ' + e.book : ''}`;
+        return `
+        <tr class="border-b border-gray-100 group">
+          <td class="py-2 pr-4 text-gray-600">${formatDate(e.date)}</td>
+          <td class="py-2 px-4 text-gray-800">${e.book || '<span class="text-gray-400">\u2014</span>'}</td>
+          <td class="py-2 px-4 text-right">${e.minutes}</td>
+          <td class="py-2 pl-2">
+            <button onclick="openDeleteModal('reading', ${e._idx}, '${desc.replace(/'/g, "\\'")}')"
+              class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-opacity text-xs px-1"
+              title="Delete">&#x2715;</button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    loadData();
+    setInterval(loadData, 60000);
+  </script>
+</body>
+</html>
